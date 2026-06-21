@@ -1,0 +1,173 @@
+{
+  "version": "1.0.0",
+  "agents": {
+    "cursor": {
+      "name": "Cursor",
+      "home": "~/.cursor",
+      "skill_dir": "~/.cursor/skills",
+      "project_skill_dir": "./.cursor/skills",
+      "type": "ide"
+    },
+    "claude-code": {
+      "name": "Claude Code",
+      "home": "~/.claude",
+      "skill_dir": "~/.claude/skills",
+      "project_skill_dir": "./.claude/skills",
+      "config_file": "~/.claude/settings.json",
+      "type": "cli"
+    },
+    "windsurf": {
+      "name": "Windsurf",
+      "home": "~/.windsurf",
+      "skill_dir": "~/.windsurf/skills",
+      "project_skill_dir": "./.windsurf/skills",
+      "type": "ide"
+    },
+    "trae": {
+      "name": "TRAE",
+      "home": "~/.trae-cn",
+      "skill_dir": "~/.trae-cn/skills",
+      "project_skill_dir": "./.trae/skills",
+      "type": "ide"
+    },
+    "opencode": {
+      "name": "OpenCode",
+      "home": "~/.opencode",
+      "skill_dir": "~/.opencode/skills",
+      "project_skill_dir": "./.opencode/skills",
+      "type": "cli"
+    },
+    "codex": {
+      "name": "Codex CLI",
+      "home": "~/.codex",
+      "skill_dir": "~/.codex/skills",
+      "project_skill_dir": "./.codex/skills",
+      "type": "cli"
+    },
+    "aider": {
+      "name": "Aider",
+      "home": "~/.aider",
+      "skill_dir": "~/.aider/skills",
+      "project_skill_dir": "./.aider/skills",
+      "type": "cli"
+    },
+    "cline": {
+      "name": "Cline",
+      "home": "~/.cline",
+      "skill_dir": "~/.cline/skills",
+      "project_skill_dir": "./.cline/skills",
+      "type": "vscode-ext"
+    },
+    "roocode": {
+      "name": "RooCode",
+      "home": "~/.roocode",
+      "skill_dir": "~/.roocode/skills",
+      "project_skill_dir": "./.roocode/skills",
+      "type": "vscode-ext"
+    },
+    "continue": {
+      "name": "Continue.dev",
+      "home": "~/.continue",
+      "skill_dir": "~/.continue/skills",
+      "project_skill_dir": "./.continue/skills",
+      "type": "vscode-ext"
+    },
+    "augment": {
+      "name": "Augment Code",
+      "home": "~/.augment",
+      "skill_dir": "~/.augment/skills",
+      "project_skill_dir": "./.augment/skills",
+      "type": "vscode-ext"
+    },
+    "kiro": {
+      "name": "Kiro (Amazon)",
+      "home": "~/.kiro",
+      "skill_dir": "~/.kiro/skills",
+      "project_skill_dir": "./.kiro/skills",
+      "type": "ide"
+    },
+    "antigravity": {
+      "name": "Antigravity (Google)",
+      "home": "~/.antigravity",
+      "skill_dir": "~/.antigravity/skills",
+      "project_skill_dir": "./.antigravity/skills",
+      "type": "ide"
+    },
+    "qoder": {
+      "name": "Qoder",
+      "home": "~/.qoder",
+      "skill_dir": "~/.qoder/skills",
+      "project_skill_dir": "./.qoder/skills",
+      "type": "ide"
+    },
+    "codebuddy": {
+      "name": "CodeBuddy",
+      "home": "~/.codebuddy",
+      "skill_dir": "~/.codebuddy/skills",
+      "project_skill_dir": "./.codebuddy/skills",
+      "type": "ide"
+    },
+    "gemini-cli": {
+      "name": "Gemini CLI",
+      "home": "~/.gemini",
+      "skill_dir": "~/.gemini/skills",
+      "project_skill_dir": "./.gemini/skills",
+      "type": "cli"
+    },
+    "zed": {
+      "name": "Zed AI",
+      "home": "~/.zed",
+      "skill_dir": "~/.zed/skills",
+      "project_skill_dir": "./.zed/skills",
+      "type": "ide"
+    },
+    "cody": {
+      "name": "Cody (Sourcegraph)",
+      "home": "~/.cody",
+      "skill_dir": "~/.cody/skills",
+      "project_skill_dir": "./.cody/skills",
+      "type": "vscode-ext"
+    },
+    "tabnine": {
+      "name": "Tabnine",
+      "home": "~/.tabnine",
+      "skill_dir": "~/.tabnine/skills",
+      "project_skill_dir": "./.tabnine/skills",
+      "type": "vscode-ext"
+    },
+    "jetbrains-ai": {
+      "name": "JetBrains AI Assistant",
+      "home": "~/.jetbrains",
+      "skill_dir": "~/.jetbrains/skills",
+      "project_skill_dir": "./.jetbrains/skills",
+      "type": "ide-ext"
+    },
+    "copilot": {
+      "name": "GitHub Copilot",
+      "home": "~/.copilot",
+      "skill_dir": "~/.copilot/skills",
+      "project_skill_dir": "./.copilot/skills",
+      "type": "vscode-ext"
+    },
+    "comate": {
+      "name": "Baidu Comate",
+      "home": "~/.comate",
+      "skill_dir": "~/.comate/skills",
+      "project_skill_dir": "./.comate/skills",
+      "type": "vscode-ext"
+    }
+  },
+  "sources": {
+    "skillhub": {
+      "name": "SkillHub",
+      "base_url": "https://github.com/skillhub/skills"
+    },
+    "github": {
+      "name": "GitHub",
+      "url_pattern": "https://github.com/{owner}/{repo}"
+    },
+    "local": {
+      "name": "Local Directory"
+    }
+  }
+}
