@@ -5,7 +5,7 @@ description: "List all managed skills, their sources, and distribution across ag
 
 # List Skills
 
-Execute `~/.meta-skill/scripts/list-skills.sh` (or `meta-skill list`). The CLI reads `manifest.json` and formats output — you do NOT manually query.
+Execute `~/.meta-skill/scripts/list-skills.sh` (or `meta-skill list`). The CLI reads the manifest index and per-skill files, then formats output — you do NOT manually query.
 
 ## Command
 

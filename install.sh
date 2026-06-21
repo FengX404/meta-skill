@@ -7,6 +7,7 @@ set -euo pipefail
 
 META_HOME="${HOME}/.meta-skill"
 SKILLS_DIR="${META_HOME}/skills"
+MANIFESTS_DIR="${META_HOME}/manifests"
 BIN_DIR="${META_HOME}/bin"
 TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/templates"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -125,6 +126,7 @@ info "All dependencies satisfied."
 info "Creating directory structure..."
 
 mkdir -p "$SKILLS_DIR"
+mkdir -p "$MANIFESTS_DIR"
 mkdir -p "$BIN_DIR"
 mkdir -p "${META_HOME}/backups"
 
@@ -186,12 +188,53 @@ fi
 if [[ ! -f "${META_HOME}/manifest.json" ]]; then
   cat > "${META_HOME}/manifest.json" <<MANEOF
 {
-  "skills": {},
-  "projects": {}
+  "skills": {}
 }
 MANEOF
   info "manifest.json created"
 fi
+
+# ---- migrate old manifest format (single-file → per-skill files) ----
+
+migrate_manifest() {
+  local manifest="${META_HOME}/manifest.json"
+  if [[ ! -f "$manifest" ]]; then
+    return
+  fi
+
+  # Detect old format: any skill entry with non-empty value (has 'source' field)
+  local needs_migration
+  needs_migration=$(jq '.skills | to_entries | any(.value | has("source"))' "$manifest" 2>/dev/null || echo "false")
+
+  if [[ "$needs_migration" != "true" ]]; then
+    return
+  fi
+
+  info "Migrating manifest to per-skill format..."
+  mkdir -p "${MANIFESTS_DIR}"
+  mkdir -p "${META_HOME}/backups"
+
+  # Backup old manifest
+  cp "$manifest" "${META_HOME}/backups/manifest_pre_migration_$(date -u +%Y%m%dT%H%M%SZ).json"
+
+  # Extract each skill entry to its own file
+  local names
+  names=$(jq -r '.skills | keys[]' "$manifest")
+  local count=0
+  while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    jq ".skills[\"$name\"]" "$manifest" > "${MANIFESTS_DIR}/${name}.json"
+    ((count++)) || true
+  done <<< "$names"
+
+  # Rewrite manifest as thin index
+  jq '.skills = (.skills | map_values({}))' "$manifest" > "${manifest}.tmp"
+  mv "${manifest}.tmp" "$manifest"
+
+  info "Migration complete: $count skill(s) moved to per-skill files"
+}
+
+migrate_manifest
 
 # ---- install meta-skill CLI ----
 
@@ -239,41 +282,49 @@ else
   target_agents=$(jq '.agents | keys' "${META_HOME}/registry.json")
 fi
 
-jq --arg ts "$ts" \
+# Write meta-skill entry to per-skill file
+jq -n \
+   --arg ts "$ts" \
    --arg type "github" \
    --arg url "$GITHUB_URL" \
    --arg version "$META_VERSION" \
    --argjson agents "$target_agents" \
-   '.skills["meta-skill"] = {
+   '{
       source: { type: $type, url: $url, version: $version },
       installed_at: $ts,
       updated_at: $ts,
       agents: $agents,
       projects: {}
-    }' \
-   "${META_HOME}/manifest.json" > "${META_HOME}/manifest.json.tmp"
-mv "${META_HOME}/manifest.json.tmp" "${META_HOME}/manifest.json"
+    }' > "${MANIFESTS_DIR}/meta-skill.json"
 
 # Register sub-skills as local-type (they ship with meta-skill)
 for skill_dir in "${SCRIPT_DIR}/skills/"*/; do
   skill_md="${skill_dir}SKILL.md"
   if [[ -f "$skill_md" ]]; then
     skill_name=$(basename "$skill_dir")
-    jq --arg name "$skill_name" \
+    jq -n \
         --arg ts "$ts" \
         --arg version "$META_VERSION" \
         --arg url "meta-skill:${skill_name}" \
-        '.skills[$name] = {
+        '{
            source: { type: "local", url: $url, version: $version },
            installed_at: $ts,
            updated_at: $ts,
            agents: [],
            projects: {}
-         }' \
-       "${META_HOME}/manifest.json" > "${META_HOME}/manifest.json.tmp"
-    mv "${META_HOME}/manifest.json.tmp" "${META_HOME}/manifest.json"
+         }' > "${MANIFESTS_DIR}/${skill_name}.json"
   fi
 done
+
+# Rebuild manifest.json index from per-skill files
+names_json=$(for mfile in "${MANIFESTS_DIR}"/*.json; do
+  [[ ! -f "$mfile" ]] && continue
+  basename "$mfile" .json
+done | jq -R . | jq -s .)
+
+jq -n --argjson names "$names_json" \
+  '{skills: ($names | map({key: ., value: {}}) | from_entries)}' \
+  > "${META_HOME}/manifest.json"
 
 info "meta-skill and sub-skills registered in manifest"
 

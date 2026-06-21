@@ -6,6 +6,7 @@ set -euo pipefail
 
 META_HOME="${HOME}/.meta-skill"
 MANIFEST="${META_HOME}/manifest.json"
+MANIFESTS_DIR="${META_HOME}/manifests"
 REGISTRY="${META_HOME}/registry.json"
 SKILLS_DIR="${META_HOME}/skills"
 METADATA="${META_HOME}/metadata.json"
@@ -52,6 +53,51 @@ write_registry() {
     cp "$REGISTRY" "${backup_dir}/registry_$(timestamp).json"
   fi
   mv "$tmp" "$REGISTRY"
+}
+
+# ---- per-skill manifest ----
+
+# Read a single skill's manifest entry from manifests/<name>.json.
+# Returns empty string if the file does not exist (soft read).
+read_skill_manifest() {
+  local name="$1"
+  local file="${MANIFESTS_DIR}/${name}.json"
+  if [[ ! -f "$file" ]]; then
+    return 0
+  fi
+  cat "$file"
+}
+
+# Write a single skill's manifest entry (from stdin) to manifests/<name>.json.
+# Also ensures the skill is registered in the manifest.json index.
+write_skill_manifest() {
+  local name="$1"
+  mkdir -p "$MANIFESTS_DIR"
+  local file="${MANIFESTS_DIR}/${name}.json"
+  local tmp="${file}.tmp.$$"
+  cat > "$tmp"
+  if [[ -f "$file" ]]; then
+    local backup_dir="${META_HOME}/backups"
+    mkdir -p "$backup_dir"
+    cp "$file" "${backup_dir}/skill_${name}_$(timestamp).json"
+  fi
+  mv "$tmp" "$file"
+  # Ensure skill is in the index
+  if [[ -f "$MANIFEST" ]]; then
+    read_manifest | jq --arg name "$name" '.skills[$name] = {}' | write_manifest
+  fi
+}
+
+# Remove a skill's manifest file and delete it from the manifest.json index.
+remove_skill_manifest() {
+  local name="$1"
+  local file="${MANIFESTS_DIR}/${name}.json"
+  if [[ -f "$file" ]]; then
+    rm "$file"
+  fi
+  if [[ -f "$MANIFEST" ]]; then
+    read_manifest | jq --arg name "$name" 'del(.skills[$name])' | write_manifest
+  fi
 }
 
 # ---- git with timeout ----
@@ -269,8 +315,8 @@ link_to_agent() {
   ln -s "${SKILLS_DIR}/${skill_name}" "$link_path"
   info "Linked to agent '$agent' at $link_path"
 
-  read_manifest | jq --arg name "$skill_name" --arg agent "$agent" \
-    '.skills[$name].agents += [$agent] | .skills[$name].agents |= unique' | write_manifest
+  read_skill_manifest "$skill_name" | jq --arg agent "$agent" \
+    '.agents += [$agent] | .agents |= unique' | write_skill_manifest "$skill_name"
 }
 
 link_to_project() {
@@ -299,8 +345,8 @@ link_to_project() {
       ln -s "${SKILLS_DIR}/${skill_name}" "$link_path"
       info "Linked to project '$project' ($agent) at $link_path"
 
-      read_manifest | jq --arg name "$skill_name" --arg project "$project" --arg agent "$agent" \
-        '.skills[$name].projects[$project] += [agent] | .skills[$name].projects[$project] |= unique' | write_manifest
+      read_skill_manifest "$skill_name" | jq --arg project "$project" --arg agent "$agent" \
+        '.projects[$project] += [$agent] | .projects[$project] |= unique' | write_skill_manifest "$skill_name"
     fi
   done <<< "$agents_info"
 }
@@ -326,8 +372,8 @@ unlink_from_agent() {
     warn "$link_path exists but is not a symlink. Skipping (not managed by meta-skill)."
   fi
 
-  read_manifest | jq --arg name "$skill_name" --arg agent "$agent" \
-    '.skills[$name].agents -= [$agent]' | write_manifest
+  read_skill_manifest "$skill_name" | jq --arg agent "$agent" \
+    '.agents -= [$agent]' | write_skill_manifest "$skill_name"
 }
 
 unlink_from_project() {
@@ -352,6 +398,6 @@ unlink_from_project() {
     fi
   done <<< "$agents_info"
 
-  read_manifest | jq --arg name "$skill_name" --arg project "$project" \
-    'del(.skills[$name].projects[$project])' | write_manifest
+  read_skill_manifest "$skill_name" | jq --arg project "$project" \
+    'del(.projects[$project])' | write_skill_manifest "$skill_name"
 }

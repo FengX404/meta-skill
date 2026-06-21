@@ -64,7 +64,7 @@ Only when all three pieces are collected, assemble and execute the command.
 ## What the CLI Does (for reference)
 
 1. git clone (or cp for local) the skill into `~/.meta-skill/skills/<name>/`
-2. Register in `~/.meta-skill/manifest.json` with source info + timestamps
+2. Register in `~/.meta-skill/manifests/<name>.json` with source info + timestamps (and add to `manifest.json` index)
 3. Create symlinks: `<agent-skill-dir>/<name>` → `~/.meta-skill/skills/<name>/`
 4. With `--project`: also create symlinks in `<project>/<agent-config>/skills/<name>/`
-5. Update manifest with install record and agent/project linkage
+5. Update per-skill manifest with agent/project linkage

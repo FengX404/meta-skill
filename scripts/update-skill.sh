@@ -9,7 +9,7 @@ source "${SCRIPT_DIR}/lib.sh"
 update_single() {
   local skill_name="$1"
   local entry
-  entry=$(read_manifest | jq -r ".skills[\"$skill_name\"] // empty")
+  entry=$(read_skill_manifest "$skill_name")
   if [[ -z "$entry" ]]; then
     warn "Skill '$skill_name' not found in manifest"
     return 1
@@ -83,8 +83,8 @@ update_single() {
   esac
 
   # Update manifest timestamps and version
-  read_manifest | jq --arg name "$skill_name" --arg version "$version" --arg updated_at "$(timestamp)" \
-    '.skills[$name].source.version = $version | .skills[$name].updated_at = $updated_at' | write_manifest
+  read_skill_manifest "$skill_name" | jq --arg version "$version" --arg updated_at "$(timestamp)" \
+    '.source.version = $version | .updated_at = $updated_at' | write_skill_manifest "$skill_name"
   info "Manifest updated for '$skill_name'"
 }
 

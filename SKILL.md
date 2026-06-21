@@ -12,7 +12,9 @@ A universal skill manager that maintains a central `~/.meta-skill/` repository a
 ```
 ~/.meta-skill/           # Global skill repository (created by install script)
 ├── metadata.json        # Meta-skill metadata (GitHub repo, version)
-├── manifest.json        # Skill/Agent/Project registry
+├── manifest.json        # Skill index (thin: skill names only)
+├── manifests/           # Per-skill manifest files (one JSON per skill)
+│   └── <name>.json      # { source, agents, projects, installed_at, updated_at }
 └── skills/              # All managed skills (organized by name)
 ```
 
@@ -82,7 +84,11 @@ meta-skill info <skill-name>
 
 ## Working with the Manifest
 
-**Always use the CLI for mutations.** The `meta-skill` command is a deterministic bash script — it handles all edge cases correctly. Never manually edit `manifest.json` or files directly.
+**Always use the CLI for mutations.** The `meta-skill` command is a deterministic bash script — it handles all edge cases correctly. Never manually edit `manifest.json` or per-skill files directly.
+
+The manifest is split into two layers:
+- `manifest.json` — thin index listing all managed skill names
+- `manifests/<name>.json` — full entry per skill (source, agents, projects, timestamps)
 
 When the user asks to manage skills:
 1. Identify which sub-skill matches the user's intent (scan / import / install / update / uninstall / list)

@@ -137,6 +137,7 @@ detect_duplicates() {
     [[ -z "$target" ]] && continue
 
     local already=-1
+    local j
     for j in "${!targets_seen[@]}"; do
       if [[ "${targets_seen[$j]}" == "$target" ]]; then
         already=$j
@@ -145,27 +146,32 @@ detect_duplicates() {
     done
 
     if [[ $already -ge 0 ]]; then
-      dup_indices+=($already $i)
+      dup_indices+=("$already" "$i")
     else
       targets_seen+=("$target")
     fi
   done
 
   # Mark duplicates in findings
-  local -A dup_map
-  for idx in "${dup_indices[@]}"; do
-    dup_map[$idx]=1
-  done
+  # (string-based lookup for bash 3.2 compatibility — no associative arrays)
+  local dup_str=" "
+  if [[ ${#dup_indices[@]} -gt 0 ]]; then
+    for idx in "${dup_indices[@]}"; do
+      dup_str+="$idx "
+    done
+  fi
 
   local new_findings=()
   for i in "${!findings[@]}"; do
     local entry="${findings[$i]}"
-    if [[ -n "${dup_map[$i]:-}" ]]; then
+    if [[ "$dup_str" == *" $i "* ]]; then
       entry=$(echo "$entry" | jq '. + {duplicate: true}')
     fi
     new_findings+=("$entry")
   done
-  findings=("${new_findings[@]}")
+  if [[ ${#new_findings[@]} -gt 0 ]]; then
+    findings=("${new_findings[@]}")
+  fi
 }
 
 # ---- output formatters ----
@@ -429,7 +435,7 @@ main() {
         project_dir=$(dirname "$(dirname "$config_dir")")
         for agent in "${agents_to_scan[@]}"; do
           local project_skill_dir_rel
-          project_skill_dir_rel=$(echo "$manifest_data" | jq -r ".agents[\"$agent\"].project_skill_dir // empty")
+          project_skill_dir_rel=$(echo "$registry_data" | jq -r ".agents[\"$agent\"].project_skill_dir // empty")
           if [[ -n "$project_skill_dir_rel" ]]; then
             local skill_dir="${project_dir}/${project_skill_dir_rel#./}"
             scan_agent_dir "$agent" "$skill_dir" "$project_dir"

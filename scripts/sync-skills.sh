@@ -10,6 +10,8 @@ main() {
 
   local manifest_data
   manifest_data=$(read_manifest)
+  local registry_data
+  registry_data=$(read_registry)
 
   local fixed=0
 
@@ -24,7 +26,7 @@ main() {
     fi
 
     local entry
-    entry=$(echo "$manifest_data" | jq ".skills[\"$name\"]")
+    entry=$(read_skill_manifest "$name")
 
     # Sync agent links
     local agents_json
@@ -32,7 +34,7 @@ main() {
     while IFS= read -r agent; do
       if [[ -n "$agent" ]]; then
         local agent_dir
-        agent_dir=$(expand_path "$(echo "$manifest_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")")
+        agent_dir=$(expand_path "$(echo "$registry_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")")
         if [[ -n "$agent_dir" ]]; then
           mkdir -p "$agent_dir"
           local link_path="${agent_dir}/${name}"
@@ -60,7 +62,7 @@ main() {
         while IFS= read -r agent; do
           if [[ -n "$agent" ]]; then
             local skill_dir_rel
-            skill_dir_rel=$(echo "$manifest_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")
+            skill_dir_rel=$(echo "$registry_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")
             if [[ -z "$skill_dir_rel" ]]; then continue; fi
             local rel="${skill_dir_rel#\~/}"
             local project_skill_dir="${project}/${rel}"

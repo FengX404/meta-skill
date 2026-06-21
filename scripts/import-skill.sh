@@ -21,20 +21,20 @@ source "${SCRIPT_DIR}/lib.sh"
 # Returns JSON: {agent, path, kind, target, location_type, project}
 find_skill() {
   local name="$1"
-  local manifest_data
-  manifest_data=$(read_manifest)
+  local registry_data
+  registry_data=$(read_registry)
 
   local all_agents
-  all_agents=$(echo "$manifest_data" | jq -r '.agents | keys[]')
+  all_agents=$(echo "$registry_data" | jq -r '.agents | keys[]')
 
   while IFS= read -r agent; do
     if [[ -z "$agent" ]]; then continue; fi
     local home_dir
-    home_dir=$(expand_path "$(echo "$manifest_data" | jq -r ".agents[\"$agent\"].home // empty")")
+    home_dir=$(expand_path "$(echo "$registry_data" | jq -r ".agents[\"$agent\"].home // empty")")
     [[ ! -d "$home_dir" ]] && continue
 
     local skill_dir
-    skill_dir=$(expand_path "$(echo "$manifest_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")")
+    skill_dir=$(expand_path "$(echo "$registry_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")")
     [[ ! -d "$skill_dir" ]] && continue
 
     local entry_path="${skill_dir}/${name}"
@@ -100,7 +100,7 @@ import_symlink() {
 
   if [[ -n "$git_root" ]] && [[ -n "$subpath" ]]; then
     # Target is a subdirectory of a git repo: clone the whole repo, symlink the subdir
-    info "Target is subdirectory of git repo ($git_root). Cloning repo, linking subpath '$subpath'..."
+    info "Target is subdirectory of git repo ($git_root). Cloning repo, linking subpath '$subpath'..." >&2
     local repo_dest="${SKILLS_DIR}/_repo_${name}"
     if [[ -d "$repo_dest" ]]; then
       rm -rf "$repo_dest"
@@ -114,16 +114,16 @@ import_symlink() {
       die "Subpath '$subpath' not found in cloned repo"
     fi
     ln -s "$subdir_dest" "$dest"
-    info "Linked subdirectory: $dest → $subdir_dest"
+    info "Linked subdirectory: $dest → $subdir_dest" >&2
   elif [[ -d "${target}/.git" ]]; then
     # Target is itself a git repo
-    info "Target is a git repository. Cloning..."
+    info "Target is a git repository. Cloning..." >&2
     if ! git clone "$target" "$dest" 2>/dev/null; then
       die "Failed to clone $target to $dest"
     fi
   else
     # Plain directory
-    info "Copying directory contents..."
+    info "Copying directory contents..." >&2
     mkdir -p "$dest"
     if ! cp -R "${target}/"* "$dest/" 2>/dev/null; then
       die "Failed to copy $target to $dest"
@@ -160,7 +160,7 @@ import_directory() {
   git_root=$(find_git_root "$path" 2>/dev/null || echo "")
 
   if [[ -n "$git_root" ]] && [[ "$source_type" != "local" ]]; then
-    info "Directory belongs to git repo ($git_root). Cloning with subpath '$subpath'..."
+    info "Directory belongs to git repo ($git_root). Cloning with subpath '$subpath'..." >&2
     local repo_dest="${SKILLS_DIR}/_repo_${name}"
     if [[ -d "$repo_dest" ]]; then
       rm -rf "$repo_dest"
@@ -177,11 +177,11 @@ import_directory() {
     info "Linked subdirectory: $dest → $subdir_dest"
     # Remove original directory since we cloned from git
     rm -rf "$path"
-    info "Removed original directory: $path"
+    info "Removed original directory: $path" >&2
   else
-    info "Moving local directory to central repository..."
+    info "Moving local directory to central repository..." >&2
     mv "$path" "$dest"
-    info "Moved: $path → $dest"
+    info "Moved: $path → $dest" >&2
   fi
 
   echo "$source_type" "$source_url" "$version" "$subpath"
@@ -228,17 +228,16 @@ register_in_manifest() {
       '{type: $type, url: $url, version: $version}')
   fi
 
-  read_manifest | jq \
-    --arg name "$name" \
+  jq -n \
     --argjson source "$source_json" \
     --arg now "$now" \
-    '.skills[$name] = {
+    '{
       source: $source,
       agents: [],
       projects: {},
       installed_at: $now,
       updated_at: $now
-    }' | write_manifest
+    }' | write_skill_manifest "$name"
 
   info "Registered '$name' in manifest"
 }
@@ -389,12 +388,14 @@ main() {
 
   if $link_all; then
     # Link to all agents with existing home dirs
+    local registry_data2
+    registry_data2=$(read_registry)
     local all_agents
-    all_agents=$(echo "$manifest_data" | jq -r '.agents | keys[]')
+    all_agents=$(echo "$registry_data2" | jq -r '.agents | keys[]')
     while IFS= read -r a; do
       if [[ -n "$a" ]]; then
         local home_dir
-        home_dir=$(expand_path "$(echo "$manifest_data" | jq -r ".agents[\"$a\"].home // empty")")
+        home_dir=$(expand_path "$(echo "$registry_data2" | jq -r ".agents[\"$a\"].home // empty")")
         if [[ -d "$home_dir" ]]; then
           link_agents+=("$a")
         fi
@@ -429,11 +430,11 @@ main() {
   info "Checking for other instances of '$skill_name'..."
   local dup_count=0
   local all_agents2
-  all_agents2=$(echo "$manifest_data" | jq -r '.agents | keys[]')
+  all_agents2=$(read_registry | jq -r '.agents | keys[]')
   while IFS= read -r a; do
     if [[ -z "$a" ]]; then continue; fi
     local skill_dir
-    skill_dir=$(expand_path "$(echo "$manifest_data" | jq -r ".agents[\"$a\"].skill_dir // empty")")
+    skill_dir=$(expand_path "$(read_registry | jq -r ".agents[\"$a\"].skill_dir // empty")")
     local entry="${skill_dir}/${skill_name}"
     if [[ -L "$entry" ]] && [[ -e "$entry" ]]; then
       local t

@@ -72,15 +72,14 @@ main() {
       projects: {}
     }')
 
-  read_manifest | jq --arg name "$skill_name" --argjson entry "$entry" \
-    '.skills[$name] = $entry' | write_manifest
+  echo "$entry" | write_skill_manifest "$skill_name"
   info "Registered in manifest"
 
   # --all: link to all agents whose home directory exists
   if $install_all; then
     info "Linking to all installed agents..."
     local all_agents
-    all_agents=$(read_manifest | jq -r '.agents | to_entries[] | "\(.key) \(.value.home)"')
+    all_agents=$(read_registry | jq -r '.agents | to_entries[] | "\(.key) \(.value.home)"')
     while IFS=' ' read -r agent_key home_raw; do
       [[ -z "$agent_key" ]] && continue
       local home_dir

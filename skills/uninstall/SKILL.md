@@ -54,14 +54,14 @@ Before executing, clarify the scope of removal.
 ## What the CLI Does (for reference)
 
 **Full uninstall:**
-1. Reads `manifest.json` to find all links
+1. Reads `manifests/<name>.json` to find all links
 2. Shows summary: N agent links + M project links will be removed
 3. Removes symlinks from all linked agents
 4. Removes symlinks from all linked projects
 5. Deletes `~/.meta-skill/skills/<name>/` directory
-6. Removes skill entry from `manifest.json`
+6. Removes `manifests/<name>.json` and deletes from `manifest.json` index
 
 **Selective uninstall** (--agent or --project):
 1. Removes only the specified symlink(s)
-2. Updates manifest to reflect the removed link
+2. Updates per-skill manifest to reflect the removed link
 3. Skill directory and other links remain untouched

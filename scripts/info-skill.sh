@@ -10,7 +10,7 @@ main() {
   [[ -z "$skill_name" ]] && die "skill name required"
 
   local entry
-  entry=$(read_manifest | jq ".skills[\"$skill_name\"] // empty")
+  entry=$(read_skill_manifest "$skill_name")
   if [[ -z "$entry" ]]; then
     die "Skill '$skill_name' not found in manifest"
   fi

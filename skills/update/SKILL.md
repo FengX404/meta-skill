@@ -59,7 +59,7 @@ Since symlinks point to the central `~/.meta-skill/skills/<name>/` directory, up
 
 ## What the CLI Does (for reference)
 
-1. Reads skill source info from `~/.meta-skill/manifest.json`
+1. Reads skill source info from `~/.meta-skill/manifests/<name>.json`
 2. git pull (or diff + re-copy for local) to get latest
-3. Updates `source.version` and `updated_at` in manifest
+3. Updates `source.version` and `updated_at` in the per-skill manifest
 4. Symlinks follow automatically — no extra work needed
