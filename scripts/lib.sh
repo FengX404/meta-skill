@@ -322,6 +322,7 @@ link_to_agent() {
 link_to_project() {
   local skill_name="$1"
   local project="$2"
+  local filter_agent="${3:-}"
 
   if [[ ! -d "$project" ]]; then
     warn "Project directory not found: $project. Skipping project link."
@@ -333,21 +334,22 @@ link_to_project() {
 
   while IFS=' ' read -r agent project_skill_dir; do
     [[ -z "$agent" || -z "$project_skill_dir" ]] && continue
+    # 如果指定了 filter_agent，只处理匹配的 agent
+    [[ -n "$filter_agent" && "$agent" != "$filter_agent" ]] && continue
+
     local full_path="${project}/${project_skill_dir#./}"
 
-    if [[ -d "$full_path" ]]; then
-      local link_path="${full_path}/${skill_name}"
-      if [[ -e "$link_path" ]]; then
-        warn "Link already exists at $link_path, skipping"
-        continue
-      fi
-      mkdir -p "$full_path"
-      ln -s "${SKILLS_DIR}/${skill_name}" "$link_path"
-      info "Linked to project '$project' ($agent) at $link_path"
-
-      read_skill_manifest "$skill_name" | jq --arg project "$project" --arg agent "$agent" \
-        '.projects[$project] += [$agent] | .projects[$project] |= unique' | write_skill_manifest "$skill_name"
+    mkdir -p "$full_path"
+    local link_path="${full_path}/${skill_name}"
+    if [[ -e "$link_path" ]]; then
+      warn "Link already exists at $link_path, skipping"
+      continue
     fi
+    ln -s "${SKILLS_DIR}/${skill_name}" "$link_path"
+    info "Linked to project '$project' ($agent) at $link_path"
+
+    read_skill_manifest "$skill_name" | jq --arg project "$project" --arg agent "$agent" \
+      '.projects[$project] += [$agent] | .projects[$project] |= unique' | write_skill_manifest "$skill_name"
   done <<< "$agents_info"
 }
 

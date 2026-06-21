@@ -101,7 +101,13 @@ main() {
   # Link to projects
   if [[ ${#projects[@]} -gt 0 ]]; then
     for project in "${projects[@]}"; do
-      link_to_project "$skill_name" "$project"
+      if [[ ${#agents[@]} -gt 0 ]]; then
+        for agent in "${agents[@]}"; do
+          link_to_project "$skill_name" "$project" "$agent"
+        done
+      else
+        link_to_project "$skill_name" "$project"
+      fi
     done
   fi
 

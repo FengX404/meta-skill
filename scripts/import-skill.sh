@@ -414,7 +414,13 @@ main() {
 
   # Link to projects if specified
   for p in "${target_projects[@]}"; do
-    link_to_project "$skill_name" "$p" || true
+    if [[ ${#link_agents[@]} -gt 0 ]]; then
+      for a in "${link_agents[@]}"; do
+        link_to_project "$skill_name" "$p" "$a" || true
+      done
+    else
+      link_to_project "$skill_name" "$p" || true
+    fi
   done
 
   # Remove the old symlink/directory we imported from (only if it was in an agent dir)
