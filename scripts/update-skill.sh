@@ -41,10 +41,14 @@ update_single() {
       elif [[ -n "$subpath" ]]; then
         # Subpath skill with missing repo: re-clone the whole repo
         warn "Repository directory missing, re-cloning..."
-        if [[ -d "$repo_dest" ]]; then
-          rm -rf "$repo_dest"
+        local tmp_clone="${repo_dest}.tmp.$$"
+        if ! git_with_timeout clone "$source_url" "$tmp_clone"; then
+          rm -rf "$tmp_clone"
+          warn "Failed to clone"
+          return 1
         fi
-        git_with_timeout clone "$source_url" "$repo_dest" || { warn "Failed to clone"; return 1; }
+        rm -rf "$repo_dest"
+        mv "$tmp_clone" "$repo_dest"
         version=$(cd "$repo_dest" && git rev-parse HEAD)
         # Re-create symlink if needed
         if [[ ! -L "$dest" ]] || [[ "$(readlink "$dest")" != "${repo_dest}/${subpath}" ]]; then
@@ -54,8 +58,14 @@ update_single() {
         fi
       else
         warn "Not a git repository, re-cloning..."
+        local tmp_clone="${dest}.tmp.$$"
+        if ! git_with_timeout clone "$source_url" "$tmp_clone"; then
+          rm -rf "$tmp_clone"
+          warn "Failed to clone"
+          return 1
+        fi
         rm -rf "$dest"
-        git_with_timeout clone "$source_url" "$dest" || { warn "Failed to clone"; return 1; }
+        mv "$tmp_clone" "$dest"
         version=$(cd "$dest" && git rev-parse HEAD)
       fi
       ;;
@@ -70,8 +80,10 @@ update_single() {
           info "No changes detected"
         else
           warn "Local source differs. Re-copy..."
+          local tmp_copy="${dest}.tmp.$$"
+          cp -r "$source_url" "$tmp_copy"
           rm -rf "$dest"
-          cp -r "$source_url" "$dest"
+          mv "$tmp_copy" "$dest"
           info "Local copy updated"
         fi
       else
