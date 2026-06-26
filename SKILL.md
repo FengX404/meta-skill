@@ -66,7 +66,7 @@ meta-skill info <skill-name>
 
 ```
 ./install.sh                        # Default: link only to agents with existing home dirs
-./install.sh --all                  # Link to all 22 agents regardless
+./install.sh --all                  # Link to all installed agents (whose home dir exists)
 ./install.sh --ide cursor,trae      # Link only to specified agents (comma-separated)
 ./install.sh --github <repo-url>    # Override GitHub repository URL
 ```

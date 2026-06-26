@@ -341,20 +341,34 @@ fi
 info "Linking meta-skill to AI agents..."
 
 # Determine which agents to link to
-# Default: only agents whose home directory exists on disk
-# --all:   all agents in manifest
-# --ide:   comma-separated list of specific agents
+# All modes check agent home directory existence to avoid creating empty dirs for uninstalled IDEs
+# --all:   all agents whose home directory exists
+# --ide:   specified agents whose home directory exists
 
 agent_filter() {
   local key="$1"
   local home_raw="$2"
 
-  # --all overrides everything
+  # All paths require agent home directory to exist
+  local home_dir
+  home_dir=$(eval echo "$home_raw")
+  if [[ ! -d "$home_dir" ]]; then
+    return 1
+  fi
+
+  # 检查 home 目录下是否有 skills 以外的内容（区分真正安装的 IDE vs meta-skill 创建的空壳）
+  local non_skills_count
+  non_skills_count=$(find "$home_dir" -maxdepth 1 -not -name "skills" -not -name ".DS_Store" -not -path "$home_dir" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$non_skills_count" -eq 0 ]]; then
+    return 1
+  fi
+
+  # --all: all installed agents (home exists and has content)
   if $INSTALL_ALL; then
     return 0
   fi
 
-  # --ide: only specified agents
+  # --ide: only specified agents (and home exists)
   if [[ -n "$INSTALL_IDES" ]]; then
     local IFS=','
     for id in $INSTALL_IDES; do
@@ -363,10 +377,8 @@ agent_filter() {
     return 1
   fi
 
-  # Default: only if agent home directory exists
-  local home_dir
-  home_dir=$(eval echo "$home_raw")
-  [[ -d "$home_dir" ]]
+  # Default: home exists (already checked above)
+  return 0
 }
 
 agents=$(jq -r '.agents | to_entries[] | "\(.key) \(.value.home) \(.value.skill_dir)"' "${META_HOME}/registry.json")
@@ -377,7 +389,7 @@ if [[ -n "$agents" ]]; then
     [[ -z "$agent_key" || -z "$skill_dir" ]] && continue
 
     if ! agent_filter "$agent_key" "$home_raw"; then
-      info "  Skipping $agent_key (not installed, use --all or --ide to force)"
+      info "  Skipping $agent_key (home directory not found, agent not installed)"
       ((skipped++)) || true
       continue
     fi

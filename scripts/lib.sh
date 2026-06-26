@@ -303,6 +303,24 @@ link_to_agent() {
     return 1
   fi
 
+  # 检查 agent home 目录是否存在且有实质内容（避免为未安装的 IDE 创建空目录）
+  local agent_home
+  agent_home=$(read_registry | jq -r ".agents[\"$agent\"].home // empty")
+  if [[ -n "$agent_home" ]]; then
+    agent_home=$(expand_path "$agent_home")
+    if [[ ! -d "$agent_home" ]]; then
+      warn "Agent '$agent' home directory not found: $agent_home. Skipping (agent not installed)."
+      return 1
+    fi
+    # 检查 home 目录下是否有 skills 以外的内容（区分真正安装的 IDE vs meta-skill 创建的空壳）
+    local non_skills_count
+    non_skills_count=$(find "$agent_home" -maxdepth 1 -not -name "skills" -not -name ".DS_Store" -not -path "$agent_home" 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$non_skills_count" -eq 0 ]]; then
+      warn "Agent '$agent' home directory appears to be empty (only skills/ exists): $agent_home. Skipping (agent not installed)."
+      return 1
+    fi
+  fi
+
   agent_dir=$(expand_path "$agent_dir")
   mkdir -p "$agent_dir"
 
