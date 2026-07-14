@@ -5,7 +5,26 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Resolve symlinks: if meta-skill is symlinked from ~/.meta-skill/bin/,
 # the operation scripts live in ~/.meta-skill/scripts/
-RESOLVED_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")"
+# macOS compatibility: use a function instead of 'readlink -f' (GNU-only)
+resolve_symlink() {
+  local path="$1"
+  # Follow symlinks recursively (up to 40 levels to prevent infinite loops)
+  local count=0
+  while [[ -L "$path" ]] && [[ $count -lt 40 ]]; do
+    local dir
+    dir=$(cd "$(dirname "$path")" 2>/dev/null && pwd)
+    local link
+    link=$(readlink "$path")
+    if [[ "$link" == /* ]]; then
+      path="$link"
+    else
+      path="${dir}/${link}"
+    fi
+    ((count++))
+  done
+  echo "$path"
+}
+RESOLVED_DIR="$(dirname "$(resolve_symlink "${BASH_SOURCE[0]}")")"
 SCRIPTS_DIR="${RESOLVED_DIR}/scripts"
 # Fallback: if scripts/ is not in the resolved dir, try parent of script dir
 if [[ ! -d "${SCRIPTS_DIR}" ]]; then

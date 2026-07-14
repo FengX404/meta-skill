@@ -12,7 +12,9 @@
 
 set -euo pipefail
 
-SOURCE_DIR="/Users/xufeng/develop/skills/meta-skill"
+# 动态获取脚本所在目录的上级目录（项目根目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$(dirname "$SCRIPT_DIR")"
 META_HOME="${HOME}/.meta-skill"
 
 # 需要链接的源码文件/目录（相对路径，相对于 SOURCE_DIR）
