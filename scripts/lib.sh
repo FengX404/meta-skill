@@ -415,6 +415,17 @@ unlink_from_project() {
     if [[ -L "$link_path" ]]; then
       rm "$link_path"
       info "Removed project link: $link_path"
+      # 清理空的 skills 目录及外层 agent 目录（如 .comate）
+      if [[ -d "$full_path" ]] && [[ -z "$(ls -A "$full_path" 2>/dev/null)" ]]; then
+        rmdir "$full_path"
+        info "Removed empty skills directory: $full_path"
+        local agent_dir
+        agent_dir="$(dirname "$full_path")"
+        if [[ -d "$agent_dir" ]] && [[ "$agent_dir" != "$project" ]] && [[ -z "$(ls -A "$agent_dir" 2>/dev/null)" ]]; then
+          rmdir "$agent_dir"
+          info "Removed empty agent directory: $agent_dir"
+        fi
+      fi
     fi
   done <<< "$agents_info"
 

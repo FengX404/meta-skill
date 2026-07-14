@@ -156,7 +156,7 @@ detect_duplicates() {
   # (string-based lookup for bash 3.2 compatibility — no associative arrays)
   local dup_str=" "
   if [[ ${#dup_indices[@]} -gt 0 ]]; then
-    for idx in "${dup_indices[@]}"; do
+    for idx in "${dup_indices[@]+"${dup_indices[@]}"}"; do
       dup_str+="$idx "
     done
   fi
@@ -186,7 +186,7 @@ output_table() {
 
   # Count managed
   local managed_count=0
-  for f in "${findings[@]}"; do
+  for f in "${findings[@]+"${findings[@]}"}"; do
     [[ $(echo "$f" | jq -r '.status') == "managed" ]] && ((managed_count++)) || true
   done
 
@@ -209,7 +209,7 @@ output_table() {
   if [[ $managed_count -gt 0 ]]; then
     echo "--- Managed (by meta-skill) ---"
     printf "  %-25s %-8s %-10s %s\n" "NAME" "TYPE" "AGENT" "PATH"
-    for f in "${findings[@]}"; do
+    for f in "${findings[@]+"${findings[@]}"}"; do
       [[ $(echo "$f" | jq -r '.status') != "managed" ]] && continue
       local name agent loctype path
       name=$(echo "$f" | jq -r '.name')
@@ -231,7 +231,7 @@ output_table() {
   if [[ $total_unmanaged -gt 0 ]]; then
     echo "--- Unmanaged (candidates for import) ---"
     printf "  %-25s %-10s %-10s %-8s %s\n" "NAME" "TYPE" "AGENT" "KIND" "TARGET"
-    for f in "${findings[@]}"; do
+    for f in "${findings[@]+"${findings[@]}"}"; do
       local status
       status=$(echo "$f" | jq -r '.status')
       [[ "$status" != "unmanaged-symlink" && "$status" != "unmanaged-directory" ]] && continue
@@ -252,7 +252,7 @@ output_table() {
   # Broken links
   if [[ ${#broken_links[@]} -gt 0 ]]; then
     echo "--- Broken Symlinks (fix with: meta-skill sync) ---"
-    for b in "${broken_links[@]}"; do
+    for b in "${broken_links[@]+"${broken_links[@]}"}"; do
       local name agent path target
       name=$(echo "$b" | jq -r '.name')
       agent=$(echo "$b" | jq -r '.agent')
@@ -266,7 +266,7 @@ output_table() {
   # Orphans
   if [[ ${#orphans[@]} -gt 0 ]]; then
     echo "--- Orphan Directories in ~/.meta-skill/skills/ (import with: meta-skill import <name>) ---"
-    for o in "${orphans[@]}"; do
+    for o in "${orphans[@]+"${orphans[@]}"}"; do
       local name path
       name=$(echo "$o" | jq -r '.name')
       path=$(echo "$o" | jq -r '.path')
@@ -285,13 +285,13 @@ output_table() {
 
 output_json() {
   local findings_json
-  findings_json=$(printf '%s\n' "${findings[@]}" | jq -s '.')
+  findings_json=$(printf '%s\n' "${findings[@]+"${findings[@]}"}" | jq -s '.')
 
   local orphans_json
-  orphans_json=$(printf '%s\n' "${orphans[@]}" | jq -s '.')
+  orphans_json=$(printf '%s\n' "${orphans[@]+"${orphans[@]}"}" | jq -s '.')
 
   local broken_json
-  broken_json=$(printf '%s\n' "${broken_links[@]}" | jq -s '.')
+  broken_json=$(printf '%s\n' "${broken_links[@]+"${broken_links[@]}"}" | jq -s '.')
 
   local managed_count
   managed_count=$(echo "$findings_json" | jq '[.[] | select(.status == "managed")] | length')
@@ -325,7 +325,7 @@ output_json() {
 count_by_status() {
   local status="$1"
   local count=0
-  for f in "${findings[@]}"; do
+  for f in "${findings[@]+"${findings[@]}"}"; do
     [[ $(echo "$f" | jq -r '.status') == "$status" ]] && ((count++)) || true
   done
   echo "$count"
@@ -333,7 +333,7 @@ count_by_status() {
 
 count_duplicates() {
   local count=0
-  for f in "${findings[@]}"; do
+  for f in "${findings[@]+"${findings[@]}"}"; do
     [[ $(echo "$f" | jq -r '.duplicate // false') == "true" ]] && ((count++)) || true
   done
   echo "$count"
@@ -400,7 +400,7 @@ main() {
   fi
 
   # Scan agent global skill dirs
-  for agent in "${agents_to_scan[@]}"; do
+  for agent in "${agents_to_scan[@]+"${agents_to_scan[@]}"}"; do
     local agent_skill_dir
     agent_skill_dir=$(expand_path "$(echo "$registry_data" | jq -r ".agents[\"$agent\"].skill_dir // empty")")
     scan_agent_dir "$agent" "$agent_skill_dir" ""
@@ -408,12 +408,12 @@ main() {
 
   # Scan project skill dirs if requested
   if [[ ${#target_projects[@]} -gt 0 ]]; then
-    for project in "${target_projects[@]}"; do
+    for project in "${target_projects[@]+"${target_projects[@]}"}"; do
       if [[ ! -d "$project" ]]; then
         warn "Project directory not found: $project"
         continue
       fi
-      for agent in "${agents_to_scan[@]}"; do
+      for agent in "${agents_to_scan[@]+"${agents_to_scan[@]}"}"; do
         local project_skill_dir_rel
         project_skill_dir_rel=$(echo "$registry_data" | jq -r ".agents[\"$agent\"].project_skill_dir // empty")
         if [[ -n "$project_skill_dir_rel" ]]; then
@@ -428,12 +428,12 @@ main() {
   if $include_projects; then
     info "Scanning projects with known agent config dirs..."
     local search_dirs=("$HOME/dev" "$HOME/projects" "$HOME/develop" "$HOME/src" "$HOME/code" "$HOME/git")
-    for search_dir in "${search_dirs[@]}"; do
+    for search_dir in "${search_dirs[@]+"${search_dirs[@]}"}"; do
       [[ ! -d "$search_dir" ]] && continue
       while IFS= read -r -d '' config_dir; do
         local project_dir
         project_dir=$(dirname "$(dirname "$config_dir")")
-        for agent in "${agents_to_scan[@]}"; do
+        for agent in "${agents_to_scan[@]+"${agents_to_scan[@]}"}"; do
           local project_skill_dir_rel
           project_skill_dir_rel=$(echo "$registry_data" | jq -r ".agents[\"$agent\"].project_skill_dir // empty")
           if [[ -n "$project_skill_dir_rel" ]]; then

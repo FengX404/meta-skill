@@ -256,21 +256,23 @@ if [[ -d "${SCRIPT_DIR}/scripts" ]]; then
   info "Operation scripts installed: $SCRIPTS_DEST"
 fi
 
-# ---- install sub-skills into skills directory ----
+# ---- install sub-skill docs into skills/meta-skill/skills/ ----
+# 子 skill 文档作为 meta-skill 的内部资源，不作为独立 skill 注册
 
 if [[ -d "${SCRIPT_DIR}/skills" ]]; then
+  mkdir -p "${SKILLS_DIR}/meta-skill/skills"
   for skill_dir in "${SCRIPT_DIR}/skills/"*/; do
     skill_md="${skill_dir}SKILL.md"
     if [[ -f "$skill_md" ]]; then
       skill_name=$(basename "$skill_dir")
-      mkdir -p "${SKILLS_DIR}/${skill_name}"
-      cp "$skill_md" "${SKILLS_DIR}/${skill_name}/SKILL.md"
-      info "Sub-skill installed: $skill_name"
+      mkdir -p "${SKILLS_DIR}/meta-skill/skills/${skill_name}"
+      cp "$skill_md" "${SKILLS_DIR}/meta-skill/skills/${skill_name}/SKILL.md"
+      info "Sub-skill doc installed: $skill_name"
     fi
   done
 fi
 
-# ---- register meta-skill itself and sub-skills in manifest ----
+# ---- register meta-skill itself in manifest ----
 
 ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -297,25 +299,6 @@ jq -n \
       projects: {}
     }' > "${MANIFESTS_DIR}/meta-skill.json"
 
-# Register sub-skills as local-type (they ship with meta-skill)
-for skill_dir in "${SCRIPT_DIR}/skills/"*/; do
-  skill_md="${skill_dir}SKILL.md"
-  if [[ -f "$skill_md" ]]; then
-    skill_name=$(basename "$skill_dir")
-    jq -n \
-        --arg ts "$ts" \
-        --arg version "$META_VERSION" \
-        --arg url "meta-skill:${skill_name}" \
-        '{
-           source: { type: "local", url: $url, version: $version },
-           installed_at: $ts,
-           updated_at: $ts,
-           agents: [],
-           projects: {}
-         }' > "${MANIFESTS_DIR}/${skill_name}.json"
-  fi
-done
-
 # Rebuild manifest.json index from per-skill files
 names_json=$(for mfile in "${MANIFESTS_DIR}"/*.json; do
   [[ ! -f "$mfile" ]] && continue
@@ -326,7 +309,7 @@ jq -n --argjson names "$names_json" \
   '{skills: ($names | map({key: ., value: {}}) | from_entries)}' \
   > "${META_HOME}/manifest.json"
 
-info "meta-skill and sub-skills registered in manifest"
+info "meta-skill registered in manifest"
 
 # ---- create meta-skill SKILL.md if not already present ----
 
